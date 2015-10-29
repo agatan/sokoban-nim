@@ -25,6 +25,13 @@ const
     (1, 0)
   ]
 
+proc newGame*(playerPos: Position, walles, boxes, goals: HashSet[Position]): Game =
+  result.playerPos = playerPos
+  result.walles = walles
+  result.boxes = boxes
+  result.goals = goals
+  result.playerDir = dirDown
+
 proc nextTo(pos: Position, dir: Direction): Position =
   let (dx, dy) = diroffset[dir]
   result = (row: pos.row + dx, col: pos.col + dy)
