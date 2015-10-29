@@ -8,33 +8,36 @@ type
     dirRight
 
   # left and up origin
-  Position* = tuple[row: int, col: int]
+  Position* = tuple[y: int, x: int]
 
-  Game* = ref object
+  Game* = object
     playerPos*: Position
     playerDir*: Direction
     walles*: HashSet[Position]
     boxes*: HashSet[Position]
     goals*: HashSet[Position]
+    width*, height*: int
 
 const
   diroffset: array[Direction, (int, int)] = [
-    (0, -1),
-    (0, 1),
     (-1, 0),
-    (1, 0)
+    (1, 0),
+    (0, -1),
+    (0, 1)
   ]
 
-proc newGame*(playerPos: Position, walles, boxes, goals: HashSet[Position]): Game =
+proc newGame*(playerPos: Position, walles, boxes, goals: HashSet[Position], width, height: int): Game =
   result.playerPos = playerPos
   result.walles = walles
   result.boxes = boxes
   result.goals = goals
   result.playerDir = dirDown
+  result.width = width
+  result.height = height
 
 proc nextTo(pos: Position, dir: Direction): Position =
   let (dx, dy) = diroffset[dir]
-  result = (row: pos.row + dx, col: pos.col + dy)
+  result = (y: pos.y + dx, x: pos.x + dy)
 
 proc isFree(game: Game, pos: Position): bool =
   result = not game.boxes.contains(pos) and not game.walles.contains(pos) and game.playerPos != pos
@@ -60,3 +63,6 @@ proc move*(game: var Game, dir: Direction) =
       return
     game.moveBox(nextPos, nextBoxPos)
   game.movePlayer(nextPos)
+
+proc isGameClear*(game: Game): bool =
+  result = game.boxes == game.goals

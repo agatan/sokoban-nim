@@ -8,6 +8,7 @@ type
     walles: HashSet[Position]
     boxes: HashSet[Position]
     goals: HashSet[Position]
+    width: int
 
 proc open*(p: var GameParser, input: Stream) =
   lexbase.open(p, input)
@@ -18,44 +19,49 @@ proc open*(p: var GameParser, input: Stream) =
 proc close*(p: var GameParser) {.inline.} =
   lexbase.close(p)
 
-proc getColumn(p: GameParser): int {.inline.} =
-  result = getColNumber(p, p.bufpos)
-
-proc getLine(p: GameParser): int {.inline.} =
-  result = p.lineNumber
-
 proc parse*(p: var GameParser): Game =
   var playerInitialized = false
+  var pos = p.bufpos
   while true:
-    let pos = (row: p.getLine(), col: p.getColumn())
-    case p.buf[p.bufpos]
+    let item = (y: p.lineNumber - 1, x: p.getColNumber(pos))
+    case p.buf[pos]
     of '\0':
       break
     of '#':
-      p.walles.incl(pos)
+      p.walles.incl(item)
     of '.':
-      p.goals.incl(pos)
+      p.goals.incl(item)
     of '$':
-      p.boxes.incl(pos)
+      p.boxes.incl(item)
     of '@':
       if playerInitialized:
-        raise newException(InvalidCharacter, "ambiguous player position.")
-      p.player = pos
+        raise newException(InvalidCharacter, "ambiguous player itemition.")
+      p.player = item
       playerInitialized = true
     of '+':
       if playerInitialized:
-        raise newException(InvalidCharacter, "ambiguous player position.")
-      p.player = pos
+        raise newException(InvalidCharacter, "ambiguous player itemition.")
+      p.player = item
       playerInitialized = true
-      p.goals.incl(pos)
+      p.goals.incl(item)
     of '*':
-      p.boxes.incl(pos)
-      p.goals.incl(pos)
+      p.boxes.incl(item)
+      p.goals.incl(item)
     of ' ':
       discard
+    of '\c':
+      pos = p.handleCR(pos)
+      if p.width < item.x:
+        p.width = item.x
+      continue
+    of '\L':
+      pos = p.handleLF(pos)
+      if p.width < item.x:
+        p.width = item.x
+      continue
     else:
-      raise newException(InvalidCharacter, "invalid character: " & $p.buf[p.bufpos])
+      raise newException(InvalidCharacter, "invalid character: " & $p.buf[pos])
 
-    inc(p.bufpos)
+    inc(pos)
 
-  result = newGame(p.player, p.walles, p.boxes, p.goals)
+  result = newGame(p.player, p.walles, p.boxes, p.goals, p.width, p.lineNumber - 1)
